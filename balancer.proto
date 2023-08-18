@@ -1,0 +1,17 @@
+syntax = "proto3";
+option go_package = "https://github.com/52617365/Load-Balancer/gen"; // Replace with your Go import path
+
+message IncomingRequest {
+    string message = 1;
+    string sender = 2;
+}
+
+message OutgoingResponse {
+    uint32 handled_by_machine = 1;
+    int64 response_time = 2;
+}
+
+service LoadBalancer {
+    rpc LoadBalanceRequest(IncomingRequest) returns (OutgoingResponse) {}
+}
+
