@@ -10,7 +10,7 @@ MAIN_EXEC=$(BINARY_DIR)/main_exec
 .PHONY: all clean build_proto build_endpoints run_endpoints shutdown
 
 # Default to build everything
-all: build_proto build_endpoints
+all: clean build_proto run_endpoints
 
 # Build protobuf files
 build_proto: $(OUT_DIR)/balancer.pb.go
@@ -19,9 +19,6 @@ $(OUT_DIR)/balancer.pb.go: $(PROTO_FILE)
 	@mkdir -p $(OUT_DIR)
 	protoc --go_out=$(OUT_DIR) --go_opt=paths=source_relative \
 		--go-grpc_out=$(OUT_DIR) --go-grpc_opt=paths=source_relative $(PROTO_FILE)
-
-# Build endpoints
-build_endpoints: $(EP1) $(EP2) $(EP3) $(MAIN_EXEC)
 
 $(EP1): 
 	@echo "Building endpoint 1..."
@@ -44,7 +41,7 @@ $(MAIN_EXEC):
 	@go build -o $(MAIN_EXEC) /Users/rase/dev/LoadBalancer/main.go
 
 # Run endpoints
-run_endpoints: build_endpoints 
+run_endpoints: $(EP1) $(EP2) $(EP3) $(MAIN_EXEC) 
 	@echo "Running endpoint 1..."
 	@$(EP1) &
 	@sleep 2
@@ -56,17 +53,6 @@ run_endpoints: build_endpoints
 	@sleep 2
 	@echo "Running main executable..."
 	@$(MAIN_EXEC)
-
-# Shutdown processes
-shutdown:
-	@echo "Clearing port 8081..."
-	-@kill -9 $$(lsof -t -i:8081) 2>/dev/null || true
-	@echo "Clearing port 8082..."
-	-@kill -9 $$(lsof -t -i:8082) 2>/dev/null || true
-	@echo "Clearing port 8083..."
-	-@kill -9 $$(lsof -t -i:8083) 2>/dev/null || true
-	@echo "Clearing port 50051..."
-	-@kill -9 $$(lsof -t -i:50051) 2>/dev/null || true
 
 # Clean directories
 clean:

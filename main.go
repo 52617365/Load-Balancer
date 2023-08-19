@@ -34,17 +34,12 @@ func getArguments() {
 
 	flag.Parse()
 
-	for _, allowed := range allowedAlgorithms {
-		if *algo == allowed {
-			algorithm = *algo
-			port = *p
-		}
-
-	}
 	if !slices.Contains(allowedAlgorithms, *algo) {
 		log.Fatalf("invalid algorithm: %s", *algo)
+	} else {
+		algorithm = *algo
+		port = *p
 	}
-
 }
 
 func main() {
