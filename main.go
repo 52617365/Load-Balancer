@@ -6,37 +6,51 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"time"
 
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	pb "LoadBalancer/gen"
 )
 
-import pb "LoadBalancer/gen"
+//type Settings struct {
+//	algorithm string
+//	port      int
+//}
 
-type Settings struct {
-	algorithm string
-	port      int
-}
+var algorithm string
+var port int
 
-func getArguments() Settings {
+var last_used_machine_index int
+
+var machines = []string{"127.0.0.1:8081", "127.0.0.1:8082", "127.0.0.1:8083"}
+
+func getArguments() {
 	var allowedAlgorithms = []string{"round-robin", "least-connections"}
+
+	p := flag.Int("port", 50051, "the port to serve on")
+	algo := flag.String("algo", "round-robin", "algorithm used for load balancer")
+
 	flag.Parse()
 
-	port := flag.Int("port", 50051, "the port to serve on")
-	algorithm := flag.String("a", "round-robin", "algorithm used for load balancer")
-
 	for _, allowed := range allowedAlgorithms {
-		if *algorithm == allowed {
-			return Settings{algorithm: *algorithm, port: *port}
+		if *algo == allowed {
+			algorithm = *algo
+			port = *p
 		}
+
 	}
-	panic("Invalid algorithm specified, only round-robin and least-connections are allowed")
+	if !slices.Contains(allowedAlgorithms, *algo) {
+		log.Fatalf("invalid algorithm: %s", *algo)
+	}
+
 }
 
 func main() {
-	settings := getArguments()
+	getArguments()
 
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", settings.port))
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -53,10 +67,34 @@ type LoadBalancer struct {
 }
 
 func (s *LoadBalancer) LoadBalanceRequest(ctx context.Context, request *pb.IncomingRequest) (*pb.OutgoingResponse, error) {
-	start := time.Now()
-	message := request.Message
-	sender := request.Sender
-	println("Received message: " + message + " from " + sender + " at " + start.String())
-	duration := time.Since(start)
-	return &pb.OutgoingResponse{HandledByMachine: 2, ResponseTime: duration.Milliseconds()}, nil
+
+	if algorithm == "round-robin" {
+		index := last_used_machine_index + 1
+		if index >= len(machines) {
+			index = 0
+		}
+		endpoint := machines[index]
+		fmt.Printf("Request -> %s | %s\n", endpoint, algorithm)
+
+		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			panic(err)
+		}
+		defer conn.Close()
+
+		client := pb.NewLoadBalancerClient(conn)
+		test, err := client.LoadBalanceRequest(context.Background(), &pb.IncomingRequest{Message: "hello world", Sender: "john doe"})
+
+		if err != nil {
+			panic(err)
+		}
+		last_used_machine_index = index
+
+		// } else if algorithm == "least-connections" {
+		// 	// Least connections algorithm
+
+		return &pb.OutgoingResponse{HandledByMachine: test.HandledByMachine, ResponseTime: test.ResponseTime}, nil
+	}
+
+	panic("unhandled")
 }
