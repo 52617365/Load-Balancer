@@ -52,7 +52,7 @@ run_endpoints: $(EP1) $(EP2) $(EP3) $(MAIN_EXEC)
 	@$(EP3) &
 	@sleep 2
 	@echo "Running main executable..."
-	@$(MAIN_EXEC)
+	@$(MAIN_EXEC) -algo=least-connections
 
 # Clean directories
 clean:

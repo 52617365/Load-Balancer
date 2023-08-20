@@ -33,11 +33,12 @@ type LoadBalancer struct {
 func (s *LoadBalancer) LoadBalanceRequest(ctx context.Context, request *pb.IncomingRequest) (*pb.OutgoingResponse, error) {
 	start := time.Now()
 
-	fmt.Printf("Endpoint 2: Received message: %s from %s at %s\n", request.Message, request.Sender, start.String())
+	index := 1
 
-	// NOTE: here we have to know what is the previously used index in the machines array.
-	// Round-robin algorithm
+	for i := 0; i < 10000000; i++ {
+		index++
+	}
 
 	duration := time.Since(start)
-	return &pb.OutgoingResponse{HandledByMachine: 2, ResponseTime: duration.Milliseconds()}, nil
+	return &pb.OutgoingResponse{HandledByMachine: 2, ResponseTime: duration.Milliseconds(), RandomIndex: int64(index)}, nil
 }

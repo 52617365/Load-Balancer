@@ -9,6 +9,7 @@ message IncomingRequest {
 message OutgoingResponse {
     uint32 handled_by_machine = 1;
     int64 response_time = 2;
+    int64 random_index = 3;
 }
 
 service LoadBalancer {
